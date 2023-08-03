@@ -1,0 +1,12 @@
+[Unit]
+Description=Supermicro Fan Control Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/sm_fancontrol.py
+Restart=on-failure # or always, on-abort, etc
+
+[Install]
+WantedBy=multi-user.target
