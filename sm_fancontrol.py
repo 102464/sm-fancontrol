@@ -7,8 +7,13 @@ import re
 cputemp = re.compile(r'^CPU\sTemp.*\|\s([0-9][0-9])\sdegrees\sC$', re.MULTILINE)
 
 def get_nvidia_gpu_temp():
-    return int(os.popen("nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader | tail -n 1").read())
-
+    try:
+        return int(os.popen("nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader | tail -n 1").read())
+    except Exception as e:
+        import traceback
+        print('nvidia gpu temp detection failure! exception: ' + traceback.format_exc())
+        failure_fallback()
+        
 def get_cpu_temp():
     try:
         temp = subprocess.check_output(['ipmitool','sdr','type','Temperature']).decode('utf-8')
@@ -16,7 +21,9 @@ def get_cpu_temp():
         temp = temp.group(1)
         return int(temp)
     except Exception as e:
-        print('cpu temp detection failure!')
+        import traceback
+        print('cpu temp detection failure! exception: ' + traceback.format_exc())
+        failure_fallback()
 
 def gpu_fan_curve(temp):
     if temp < 40:
@@ -58,6 +65,13 @@ def cpu_fan_set_ratio(ratio):
     print("command: " + cmd)
     print(os.popen(cmd).read())
 
+def failure_fallback():
+    print("Temperature detection failure! Entering fallback (full fan speed) mode.")
+    print("Please restart the service when you solve the issue. There is no other way to exit.")
+    set_fan_mode_full_speed()
+    gpu_fan_set_ratio(100)
+    cpu_fan_set_ratio(100)
+    while(1): pass
 
 print("Fan control initalizing... Setting all fan to full speed for 3 seconds...")
 set_fan_mode_full_speed()
